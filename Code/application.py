@@ -13,6 +13,7 @@ import time
 import psutil
 import atexit
 import signal
+import socket
 import threading
 import datetime
 
@@ -37,15 +38,16 @@ class Pi_Monitor:
         # Pre-allocate format strings
         self._format_strings = {
             'cpu': "CPU: {}%",
-            'mem': "MEM: {}%", 
-            'disk': "DISK: {}%",
+            'mem': "Mem: {}%", 
+            'disk': "Disk: {}%",
             'date': "Date: {}",
             'week': "Week: {}",
-            'time': "TIME: {}",
-            'pi_temp': "PI TEMP: {}C",
-            'pc_temp': "PC TEMP: {}C",
-            'fan_mode': "FAN Mode: {}",
-            'fan_duty': "FAN Duty: {}%",
+            'time': "Time: {}",
+            'netinfo': "Netinfo\n{}",
+            'pi_temp': "PI ℃: {}",
+            'pc_temp': "PC ℃: {}",
+            'fan_mode': "Fan Mode: {}",
+            'fan_duty': "Fan Duty: {}%",
             'led_mode': "LED Mode: {}"
         }
 
@@ -58,7 +60,8 @@ class Pi_Monitor:
             self.expansion = Expansion()
             self.expansion.set_led_mode(4)
             self.expansion.set_all_led_color(255, 0, 0)
-            self.expansion.set_fan_mode(1)
+            self.expansion.set_fan_mode(2)
+            self.expansion.set_fan_threshold(30, 70)
         except Exception as e:
             sys.exit(1)
 
@@ -151,6 +154,25 @@ class Pi_Monitor:
         except Exception:
             return '0:0:0'
 
+    def get_raspberry_netinfo(self):
+        """Get the IP addresses of the Raspberry Pi"""
+        try:
+            # Get the hostname of the machine
+            hostname = socket.gethostname()
+
+            # Get the IP address         
+            ip_address = []
+            for iface, addrs in psutil.net_if_addrs().items():
+                for addr in addrs:
+                    if addr.family == socket.AF_INET and str(addr.address).startswith("192.168"):          # IPv4
+                        ip_address.append(f'{iface.capitalize()}: {addr.address}')
+                    # elif addr.family == socket.AF_INET6:       # IPv6
+                    #     ip_address.append(addr.address.split('%')[0])  # strip scope id
+
+            return f'Host: {hostname}\n{"\n".join(ip_address)}'
+        except Exception as exc:
+            return str(exc)
+
     def get_raspberry_cpu_temperature(self):
         """Get the CPU temperature in Celsius using direct file read"""
         try:
@@ -180,6 +202,13 @@ class Pi_Monitor:
             return self.expansion.get_fan0_duty()
         except Exception as e:
             return 0
+    
+    # def get_computer_fan_threshold(self):
+    #     # Get the computer fan threshold cycle using Expansion object
+    #     try:
+    #         return *self.expansion.get_computer_fan_threshold()
+    #     except Exception as e:
+    #         return 0
 
     def get_computer_led_mode(self):
         # Get the computer LED mode using Expansion object
@@ -250,9 +279,12 @@ class Pi_Monitor:
             # Fan control logic (runs every iteration - every 1 second)
             current_cpu_temp = self.get_raspberry_cpu_temperature()
             current_fan_pwm = self.get_raspberry_fan_pwm()
-            
+            current_fan_mode = self.get_computer_fan_mode()
+            current_fan_threshold_min = self.expansion.get_fan_threshold()[0] 
+            current_fan_threshold_max = self.expansion.get_fan_threshold()[1] #self.get_computer_fan_threshold()
+
             # Use single print statement to reduce I/O
-            print(f"CPU TEMP: {current_cpu_temp}C, FAN PWM: {current_fan_pwm}")
+            print(f"CPU TEMP: {current_cpu_temp}C, FAN PWM: {current_fan_pwm}, FAN MODE: {current_fan_mode}, FAN Threshold (min °C, max °C): {current_fan_threshold_min}, {current_fan_threshold_max}")
             
             if current_fan_pwm != -1:
                 if last_fan_pwm_limit == 0 and current_fan_pwm > temp_threshold_high:
@@ -265,20 +297,23 @@ class Pi_Monitor:
                     last_fan_pwm_limit = 0
             
             # OLED update logic (runs every 3 seconds)
-            if oled_counter % 3 == 0:
+            if oled_counter % 4 == 0:
                 self.oled.clear()
                 if oled_screen == 0:
-                    # Screen 1: System Parameters
-                    self.oled.draw_text("PI Parameters", position=(0, 0), font_size=self.font_size)
-                    self.oled.draw_text(self._format_strings['cpu'].format(self.get_raspberry_cpu_usage()), position=(0, 16), font_size=self.font_size)
-                    self.oled.draw_text(self._format_strings['mem'].format(self.get_raspberry_memory_usage()), position=(0, 32), font_size=self.font_size)
-                    self.oled.draw_text(self._format_strings['disk'].format(self.get_raspberry_disk_usage()), position=(0, 48), font_size=self.font_size)
-                elif oled_screen == 1:
-                    # Screen 2: Date/Time/LED
+                    # Screen 1: Date/Time/LED
                     self.oled.draw_text(self._format_strings['date'].format(self.get_raspberry_date()), position=(0, 0), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['week'].format(self.get_raspberry_weekday()), position=(0, 16), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['time'].format(self.get_raspberry_time()), position=(0, 32), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['led_mode'].format(self.get_computer_led_mode()), position=(0, 48), font_size=self.font_size)
+                elif oled_screen == 1:
+                    # Screen 2: Hostname and IP adresses
+                    self.oled.draw_text(self._format_strings['netinfo'].format(self.get_raspberry_netinfo()), position=(0, 0), font_size=self.font_size-1)
+                elif oled_screen == 2:
+                    # Screen 3: System Parameters
+                    self.oled.draw_text("PI Parameters", position=(0, 0), font_size=self.font_size)
+                    self.oled.draw_text(self._format_strings['cpu'].format(self.get_raspberry_cpu_usage()), position=(0, 16), font_size=self.font_size)
+                    self.oled.draw_text(self._format_strings['mem'].format(self.get_raspberry_memory_usage()), position=(0, 32), font_size=self.font_size)
+                    self.oled.draw_text(self._format_strings['disk'].format(self.get_raspberry_disk_usage()), position=(0, 48), font_size=self.font_size)
                 else:  # oled_screen == 2
                     # Screen 3: Temperature/Fan
                     self.oled.draw_text(self._format_strings['pi_temp'].format(current_cpu_temp), position=(0, 0), font_size=self.font_size)
@@ -287,7 +322,7 @@ class Pi_Monitor:
                     self.oled.draw_text(self._format_strings['fan_duty'].format(int(float(self.get_computer_fan_duty()/255.0)*100)), position=(0, 48), font_size=self.font_size)
                 
                 self.oled.show()
-                oled_screen = (oled_screen + 1) % 3  # Cycle through screens 0, 1, 2
+                oled_screen = (oled_screen + 1) % 4  # Cycle through screens 0, 1, 2
             
             oled_counter += 1
             time.sleep(1)  # Base interval of 1 second

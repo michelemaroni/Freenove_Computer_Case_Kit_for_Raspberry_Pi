@@ -126,6 +126,11 @@ def main(argv):
                     for i in range(255, -1, -1):
                         expansion_board.set_fan_duty(i, i)
                         time.sleep(0.02)
+                    # print("get fan mode:", expansion_board.get_fan_mode())
+                    # print("get fan frequency:", expansion_board.get_fan_frequency())
+                    # print("get fan0 duty:", expansion_board.get_fan0_duty())
+                    # print("get fan1 duty:", expansion_board.get_fan1_duty())
+                    # print("get fan threshold:", expansion_board.get_fan_threshold())
             except Exception as e:
                 print(e)
             except KeyboardInterrupt:
