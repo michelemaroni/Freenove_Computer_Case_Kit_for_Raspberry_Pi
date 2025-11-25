@@ -58,10 +58,10 @@ class Pi_Monitor:
 
         try:
             self.expansion = Expansion()
-            self.expansion.set_led_mode(4)
-            self.expansion.set_all_led_color(255, 0, 0)
+            self.expansion.set_led_mode(1)
+            self.expansion.set_all_led_color(0, 0, 0)
             self.expansion.set_fan_mode(2)
-            self.expansion.set_fan_threshold(30, 70)
+            self.expansion.set_fan_threshold(45, 70)
         except Exception as e:
             sys.exit(1)
 
