@@ -59,7 +59,7 @@ class Pi_Monitor:
         try:
             self.expansion = Expansion()
             self.expansion.set_led_mode(1)
-            self.expansion.set_all_led_color(0, 0, 0)
+            self.expansion.set_all_led_color(5, 5, 5)
             self.expansion.set_fan_mode(2)
             self.expansion.set_fan_threshold(45, 70)
         except Exception as e:
@@ -278,23 +278,24 @@ class Pi_Monitor:
         while not self.stop_event.is_set():
             # Fan control logic (runs every iteration - every 1 second)
             current_cpu_temp = self.get_raspberry_cpu_temperature()
+            current_rpi_temp = self.get_computer_temperature()
             current_fan_pwm = self.get_raspberry_fan_pwm()
             current_fan_mode = self.get_computer_fan_mode()
             current_fan_threshold_min = self.expansion.get_fan_threshold()[0] 
             current_fan_threshold_max = self.expansion.get_fan_threshold()[1] #self.get_computer_fan_threshold()
 
             # Use single print statement to reduce I/O
-            print(f"CPU TEMP: {current_cpu_temp}C, FAN PWM: {current_fan_pwm}, FAN MODE: {current_fan_mode}, FAN Threshold (min °C, max °C): {current_fan_threshold_min}, {current_fan_threshold_max}")
+            print(f"RPI TEMP: {current_rpi_temp} °C, CPU TEMP: {current_cpu_temp} °C, FAN PWM: {current_fan_pwm}, FAN MODE: {current_fan_mode}, FAN Threshold: min {current_fan_threshold_min} °C, max {current_fan_threshold_max} °C)")
             
-            if current_fan_pwm != -1:
-                if last_fan_pwm_limit == 0 and current_fan_pwm > temp_threshold_high:
-                    last_fan_pwm = max_pwm
-                    self.expansion.set_fan_duty(last_fan_pwm, last_fan_pwm)
-                    last_fan_pwm_limit = 1
-                elif last_fan_pwm_limit == 1 and current_fan_pwm < temp_threshold_low:
-                    last_fan_pwm = min_pwm
-                    self.expansion.set_fan_duty(last_fan_pwm, last_fan_pwm)
-                    last_fan_pwm_limit = 0
+            # if current_fan_pwm != -1:
+            #     if last_fan_pwm_limit == 0 and current_fan_pwm > temp_threshold_high:
+            #         last_fan_pwm = max_pwm
+            #         self.expansion.set_fan_duty(last_fan_pwm, last_fan_pwm)
+            #         last_fan_pwm_limit = 1
+            #     elif last_fan_pwm_limit == 1 and current_fan_pwm < temp_threshold_low:
+            #         last_fan_pwm = min_pwm
+            #         self.expansion.set_fan_duty(last_fan_pwm, last_fan_pwm)
+            #         last_fan_pwm_limit = 0
             
             # OLED update logic (runs every 3 seconds)
             if oled_counter % 4 == 0:
@@ -316,7 +317,7 @@ class Pi_Monitor:
                     self.oled.draw_text(self._format_strings['disk'].format(self.get_raspberry_disk_usage()), position=(0, 48), font_size=self.font_size)
                 else:  # oled_screen == 2
                     # Screen 3: Temperature/Fan
-                    self.oled.draw_text(self._format_strings['pi_temp'].format(current_cpu_temp), position=(0, 0), font_size=self.font_size)
+                    self.oled.draw_text(self._format_strings['pi_temp'].format(self.get_raspberry_cpu_temperature()), position=(0, 0), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['pc_temp'].format(self.get_computer_temperature()), position=(0, 16), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['fan_mode'].format(self.get_computer_fan_mode()), position=(0, 32), font_size=self.font_size)
                     self.oled.draw_text(self._format_strings['fan_duty'].format(int(float(self.get_computer_fan_duty()/255.0)*100)), position=(0, 48), font_size=self.font_size)

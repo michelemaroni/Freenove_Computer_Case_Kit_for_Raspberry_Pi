@@ -184,13 +184,20 @@ if __name__ == '__main__':
         '''
 
         count = 0
-        expansion_board.set_all_led_color(0, 0, 255)
-        expansion_board.set_fan_duty(0, 0)
-        expansion_board.set_led_mode(2)
-        expansion_board.set_fan_mode(2)
-        expansion_board.set_fan_frequency(50)
-        expansion_board.set_fan_duty(255, 255)
-        time.sleep(3)
+        expansion_board.set_led_mode(1)
+        expansion_board.set_all_led_color(5, 5, 5)
+        fan_mode = 2        
+        expansion_board.set_fan_mode(fan_mode)
+        if fan_mode==1:
+            expansion_board.set_fan_duty(0, 0)
+            # expansion_board.set_fan_frequency(50)
+            # expansion_board.set_fan_duty(255, 255)
+        elif fan_mode==2:
+            expansion_board.set_fan_threshold(45, 70)
+        
+        expansion_board.set_save_flash(1)
+        time.sleep(1)
+
         while True:
             count += 1
             if count % 5 == 0:
@@ -206,7 +213,7 @@ if __name__ == '__main__':
                 print("get brand:", expansion_board.get_brand())
                 print("get version:", expansion_board.get_version())
                 print("")
-            time.sleep(0.03)
+            time.sleep(1)
 
     except Exception as e:
         print("Exception:", e)
