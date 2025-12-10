@@ -184,18 +184,29 @@ if __name__ == '__main__':
         '''
 
         count = 0
+        
+        #Set Led mode and color(s)
         expansion_board.set_led_mode(1)
-        expansion_board.set_all_led_color(5, 5, 5)
-        fan_mode = 2        
+        led_colors = {0 : (255, 127, 2), 1 : (127, 255, 2), 2 : (2, 255, 127), 3 : (127, 2, 255)}
+        
+        for led_id, color_tuple in led_colors.items():
+            _red, _green, _blue = color_tuple
+            led_brightness = 5 # Adjust led brightness using integer division
+            red, green, blue = _red // led_brightness, _green // led_brightness, _blue // led_brightness
+            expansion_board.set_led_color(led_id, red, green, blue)
+        
+        #Set Fan mode, duty, frequency and temperature thresholds
+        fan_mode = 1        
         expansion_board.set_fan_mode(fan_mode)
         if fan_mode==1:
-            expansion_board.set_fan_duty(0, 0)
-            # expansion_board.set_fan_frequency(50)
-            # expansion_board.set_fan_duty(255, 255)
+            expansion_board.set_fan_duty(255, 255)
+            expansion_board.set_fan_frequency(25)
         elif fan_mode==2:
             expansion_board.set_fan_threshold(45, 70)
         
-        expansion_board.set_save_flash(1)
+        #Save Led and Fan parameters to flash memory
+        save_parameters = 1
+        expansion_board.set_save_flash(save_parameters)
         time.sleep(1)
 
         while True:
@@ -220,6 +231,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
     finally:
-        expansion_board.set_all_led_color(0, 0, 0)
-        expansion_board.set_fan_duty(0, 0)
+        if save_parameters == 0:
+            expansion_board.set_all_led_color(0, 0, 0)
+            expansion_board.set_fan_duty(0, 0)
         expansion_board.end()
