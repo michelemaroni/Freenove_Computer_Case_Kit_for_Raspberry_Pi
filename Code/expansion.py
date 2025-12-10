@@ -64,7 +64,7 @@ class Expansion:
         # Set color for specified LED
         cmd = [led_id, r, g, b]
         self.write(self.REG_LED_SPECIFIED, cmd)
-
+    
     def set_all_led_color(self, r, g, b):
         # Set color for all LEDs
         cmd = [r, g, b]
@@ -160,6 +160,21 @@ class Expansion:
         version_bytes = self.read(self.REG_VERSION, 14)
         return ''.join(chr(b) for b in version_bytes).rstrip('\x00')
 
+
+def set_led_palette(expansion_board, palette=None, led_brightness=5):
+    """
+    Set a static color palette for LEDs of an expansion board
+    """
+    expansion_board.set_led_mode(1)
+    
+    if palette is None:
+        palette={0 : (255, 127, 2), 1 : (127, 255, 2), 2 : (2, 255, 127), 3 : (127, 2, 255)}
+
+    for led_id, color_tuple in palette.items():
+        _red, _green, _blue = color_tuple
+        red, green, blue = _red // led_brightness, _green // led_brightness, _blue // led_brightness
+        expansion_board.set_led_color(led_id, red, green, blue)
+
 if __name__ == '__main__':
     expansion_board = Expansion()
     try:
@@ -186,14 +201,9 @@ if __name__ == '__main__':
         count = 0
         
         #Set Led mode and color(s)
-        expansion_board.set_led_mode(1)
-        led_colors = {0 : (255, 127, 2), 1 : (127, 255, 2), 2 : (2, 255, 127), 3 : (127, 2, 255)}
-        
-        for led_id, color_tuple in led_colors.items():
-            _red, _green, _blue = color_tuple
-            led_brightness = 5 # Adjust led brightness using integer division
-            red, green, blue = _red // led_brightness, _green // led_brightness, _blue // led_brightness
-            expansion_board.set_led_color(led_id, red, green, blue)
+        # self.expansion.set_led_mode(1)
+        # self.expansion.set_all_led_color(5, 5, 5)
+        set_led_palette(expansion_board)
         
         #Set Fan mode, duty, frequency and temperature thresholds
         fan_mode = 1        

@@ -58,8 +58,9 @@ class Pi_Monitor:
 
         try:
             self.expansion = Expansion()
-            self.expansion.set_led_mode(1)
-            self.expansion.set_all_led_color(5, 5, 5)
+            self.expansion.set_led_palette(self.expansion)
+            # self.expansion.set_led_mode(1)
+            # self.expansion.set_all_led_color(5, 5, 5)
             self.expansion.set_fan_mode(2)
             self.expansion.set_fan_threshold(45, 70)
         except Exception as e:
@@ -168,8 +169,11 @@ class Pi_Monitor:
                         ip_address.append(f'{iface.capitalize()}: {addr.address}')
                     # elif addr.family == socket.AF_INET6:       # IPv6
                     #     ip_address.append(addr.address.split('%')[0])  # strip scope id
+            netinfo_string = f'Host: {hostname}'
+            netinfo_string += "\n"
+            netinfo_string += "\n".join(ip_address)
 
-            return f'Host: {hostname}\n{"\n".join(ip_address)}'
+            return netinfo_string
         except Exception as exc:
             return str(exc)
 
