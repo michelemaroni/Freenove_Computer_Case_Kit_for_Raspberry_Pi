@@ -206,11 +206,11 @@ if __name__ == '__main__':
         set_led_palette(expansion_board)
         
         #Set Fan mode, duty, frequency and temperature thresholds
-        fan_mode = 1        
+        fan_mode = 2        
         expansion_board.set_fan_mode(fan_mode)
         if fan_mode==1:
             expansion_board.set_fan_duty(255, 255)
-            expansion_board.set_fan_frequency(25)
+            expansion_board.set_fan_frequency(10)
         elif fan_mode==2:
             expansion_board.set_fan_threshold(45, 70)
         

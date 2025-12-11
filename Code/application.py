@@ -16,9 +16,27 @@ import signal
 import socket
 import threading
 import datetime
+import logging
+import traceback
 
 from oled import OLED
-from expansion import Expansion
+from expansion import Expansion, set_led_palette
+
+#logging.basicConfig(filename='error.log', level=logging.ERROR)
+
+def set_led_palette(expansion_board, palette=None, led_brightness=5):
+    """
+    Set a static color palette for LEDs of an expansion board
+    """
+    expansion_board.set_led_mode(1)
+    
+    if palette is None:
+        palette={0 : (255, 127, 2), 1 : (127, 255, 2), 2 : (2, 255, 127), 3 : (127, 2, 255)}
+
+    for led_id, color_tuple in palette.items():
+        _red, _green, _blue = color_tuple
+        red, green, blue = _red // led_brightness, _green // led_brightness, _blue // led_brightness
+        expansion_board.set_led_color(led_id, red, green, blue)
 
 class Pi_Monitor:
     __slots__ = ['oled', 'expansion', 'font_size', 'cleanup_done', 
@@ -26,6 +44,7 @@ class Pi_Monitor:
 
     def __init__(self):
         # Initialize OLED and Expansion objects
+
         self.oled = None
         self.expansion = None
         self.font_size = 12
@@ -54,16 +73,18 @@ class Pi_Monitor:
         try:
             self.oled = OLED()
         except Exception as e:
+            traceback.print_exc()
             sys.exit(1)
 
         try:
             self.expansion = Expansion()
-            self.expansion.set_led_palette(self.expansion)
+            set_led_palette(self.expansion)
             # self.expansion.set_led_mode(1)
             # self.expansion.set_all_led_color(5, 5, 5)
             self.expansion.set_fan_mode(2)
             self.expansion.set_fan_threshold(45, 70)
         except Exception as e:
+            traceback.print_exc()
             sys.exit(1)
 
         atexit.register(self.cleanup)
@@ -278,6 +299,8 @@ class Pi_Monitor:
         min_pwm = 0
         oled_counter = 0  # Counter to control OLED update frequency
         oled_screen = 0   # Which screen to show (0, 1, or 2)
+        
+        print("Running monitor loop")
         
         while not self.stop_event.is_set():
             # Fan control logic (runs every iteration - every 1 second)
